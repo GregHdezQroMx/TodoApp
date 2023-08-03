@@ -33,6 +33,14 @@ class TasksViewModel @Inject constructor() : ViewModel() {
     }
 
     fun onTaskSelected(taskModel: TaskModel) {
-        TODO("Not yet implemented")
+        val index = _tasks.indexOf(taskModel)
+        _tasks[index] = _tasks[index].let {
+            it.copy(selected = !it.selected)
+        }
+    }
+
+    fun onTaskRemoved(task: TaskModel) {
+        val taskToRemove = _tasks.find { it.id == task.id }
+        _tasks.remove(taskToRemove)
     }
 }
