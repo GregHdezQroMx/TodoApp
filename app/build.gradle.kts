@@ -3,17 +3,18 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.daggerHilt)
+    alias(libs.plugins.ksp)
     kotlin("kapt")
 }
 
 android {
     namespace = "com.jght.todoapp"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.jght.todoapp"
         minSdk = 26
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -77,5 +78,10 @@ dependencies {
 
     //liveData
     implementation(libs.compose.runtime.livedata)
+
+    // room
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
 
 }

@@ -1,4 +1,5 @@
 [versions]
+ksp = "1.8.10-1.0.9"
 agp = "8.2.0-alpha08"
 kotlin = "1.8.10"
 core-ktx = "1.10.1"
@@ -8,8 +9,9 @@ espresso-core = "3.5.1"
 lifecycle-runtime-ktx = "2.6.1"
 runtime-livedata = "1.4.3"
 activity-compose = "1.7.2"
-compose-bom = "2023.03.00"
+compose-bom = "2023.06.01"
 hilt = "2.44"
+room="2.5.2"
 
 [libraries]
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
@@ -29,8 +31,12 @@ ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 material3 = { group = "androidx.compose.material3", name = "material3" }
 dagger-hilt = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 dagger-hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 
 [plugins]
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 
