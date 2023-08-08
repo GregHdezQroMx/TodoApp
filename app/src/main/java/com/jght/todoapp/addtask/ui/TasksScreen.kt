@@ -18,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -28,53 +29,83 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.jght.todoapp.addtask.ui.model.TaskModel
 
 @Composable
 fun TasksScreen(tasksViewModel: TasksViewModel) {
 
     val showDialog: Boolean by tasksViewModel.showDialog.observeAsState(false)
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        TaskList(tasksViewModel = tasksViewModel)
-        FabDialog(modifier = Modifier.align(Alignment.BottomEnd), tasksViewModel = tasksViewModel)
-        AddTasksDialog(
-            show = showDialog,
-            onDismiss = { tasksViewModel.onDialogClose() },
-            onTaskAdded = { tasksViewModel.onTaskCreated(it) })
-
+    val uiState by produceState<TaskUiState>(
+        initialValue = TaskUiState.Loading,
+        key1 = lifecycle,
+        key2 = tasksViewModel
+    ) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            tasksViewModel.uiState.collect { value = it }
+        }
     }
-}
 
-@Composable
-fun TaskList(tasksViewModel: TasksViewModel) {
+    when (uiState) {
+        is TaskUiState.Success -> {
+            Box(modifier = Modifier.fillMaxSize()) {
+                TaskList((uiState as TaskUiState.Success).tasks, tasksViewModel)
+                FabDialog(modifier = Modifier.align(Alignment.BottomEnd), tasksViewModel = tasksViewModel)
+                AddTasksDialog(
+                    show = showDialog,
+                    onDismiss = { tasksViewModel.onDialogClose() },
+                    onTaskAdded = { tasksViewModel.onTaskCreated(it) })
+            }
+        }
 
-    val myTasks: List<TaskModel> = tasksViewModel.tasks
+        is TaskUiState.Error -> {
+            Box(modifier = Modifier.fillMaxSize()) {
+                Text(text = "Error")
+            }
+        }
 
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(myTasks, key = { it.id }) { task ->
-            TaskItem(task = task, tasksViewModel = tasksViewModel)
+        is TaskUiState.Loading -> {
+            Box(modifier = Modifier.fillMaxSize()) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
         }
     }
 }
 
 @Composable
-private fun TaskItem(task: TaskModel, tasksViewModel: TasksViewModel) {
+fun TaskList(myTasks: List<TaskModel>, tasksViewModel: TasksViewModel) {
+
+    //val myTasks: List<TaskModel> = tasksViewModel.tasks
+
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        items(myTasks, key = { it.id }) { task ->
+            TaskItem(taskModel = task, tasksViewModel = tasksViewModel)
+        }
+    }
+}
+
+@Composable
+private fun TaskItem(taskModel: TaskModel, tasksViewModel: TasksViewModel) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
             .pointerInput(Unit) {
                 detectTapGestures(onLongPress = {
-                    tasksViewModel.onTaskRemoved(task)
+                    tasksViewModel.onTaskRemoved(taskModel)
                 })
             },
         elevation = CardDefaults.cardElevation(
@@ -88,10 +119,10 @@ private fun TaskItem(task: TaskModel, tasksViewModel: TasksViewModel) {
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "Task 1", Modifier.weight(1f))
+            Text(text = taskModel.task, Modifier.weight(1f))
             Checkbox(
-                checked = task.selected,
-                onCheckedChange = { tasksViewModel.onTaskSelected(task) })
+                checked = taskModel.selected,
+                onCheckedChange = { tasksViewModel.onTaskSelected(taskModel) })
         }
     }
 }

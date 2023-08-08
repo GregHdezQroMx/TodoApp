@@ -1,22 +1,40 @@
 package com.jght.todoapp.addtask.ui
 
 import android.util.Log
-import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.jght.todoapp.addtask.domain.AddTaskUseCase
+import com.jght.todoapp.addtask.domain.DeleteTaskUseCase
+import com.jght.todoapp.addtask.domain.GetTasksUseCase
+import com.jght.todoapp.addtask.domain.UpdateTaskUseCase
+import com.jght.todoapp.addtask.ui.TaskUiState.*
 import com.jght.todoapp.addtask.ui.model.TaskModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class TasksViewModel @Inject constructor() : ViewModel() {
+class TasksViewModel @Inject constructor(
+    private val addTaskUseCase: AddTaskUseCase,
+    private val updateTaskUseCase: UpdateTaskUseCase,
+    private val deleteTaskUseCase: DeleteTaskUseCase,
+    getTasksUseCase: GetTasksUseCase
+) : ViewModel() {
+
+    val uiState:StateFlow<TaskUiState> = getTasksUseCase()
+        .map (transform = ::Success)
+        .catch { Error(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), Loading)
 
     private val _showDialog = MutableLiveData(false)
     val showDialog: LiveData<Boolean> = _showDialog
-
-    private val _tasks = mutableStateListOf<TaskModel>()
-    val tasks: List<TaskModel> = _tasks
 
     fun onDialogClose() {
         _showDialog.value = false
@@ -24,7 +42,15 @@ class TasksViewModel @Inject constructor() : ViewModel() {
 
     fun onTaskCreated(task: String) {
         _showDialog.value = false
-        _tasks.add(TaskModel(task = task))
+
+        viewModelScope.launch {
+            addTaskUseCase(
+                TaskModel(
+                    task = task
+                )
+            )
+        }
+
         Log.i("TasksViewModel", "onTaskCreated: $task")
     }
 
@@ -33,14 +59,14 @@ class TasksViewModel @Inject constructor() : ViewModel() {
     }
 
     fun onTaskSelected(taskModel: TaskModel) {
-        val index = _tasks.indexOf(taskModel)
-        _tasks[index] = _tasks[index].let {
-            it.copy(selected = !it.selected)
+        viewModelScope.launch {
+            updateTaskUseCase(taskModel.copy(selected = !taskModel.selected))
         }
     }
 
-    fun onTaskRemoved(task: TaskModel) {
-        val taskToRemove = _tasks.find { it.id == task.id }
-        _tasks.remove(taskToRemove)
+    fun onTaskRemoved(taskModel: TaskModel) {
+        viewModelScope.launch {
+            deleteTaskUseCase(taskModel)
+        }
     }
 }
